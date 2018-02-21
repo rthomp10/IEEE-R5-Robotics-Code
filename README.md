@@ -5,4 +5,4 @@ This is the code that controls Bruce Robot. Bruce might be an interesting fella,
 1. Ryan Thompson
 2. Jerson Quispe
 3. Rebekah Resendez
-4. 
+4. Jack "Kenneth" Justice
