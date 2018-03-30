@@ -20,25 +20,23 @@
 
 #include <Stepper.h>
 
-const int stepsPerRevolution = 4;  // change this to fit the number of steps per revolution
-// for your motor
+int Electromagnet = 0;
+int LED = 13;
 
-// initialize the stepper library on pins 8 through 11:
-Stepper myStepper(stepsPerRevolution, 10, 11, 12, 13);
-
-int stepCount = 0;         // number of steps the motor has taken
-
+// the setup routine runs once when you press reset:
 void setup() {
-  // initialize the serial port:
-  Serial.begin(9600);
+    // initialize the digital pin as an output.
+    pinMode(Electromagnet, OUTPUT);
+    pinMode(LED, OUTPUT);
 }
 
+// the loop routine runs over and over again forever:
 void loop() {
-  // step one step:
-  myStepper.step(1);
-  Serial.print("steps:");
-  Serial.println(stepCount);
-  stepCount++;
-  delay(1000);
+    digitalWrite(Electromagnet, HIGH);  // turn the Electromagnet on (HIGH is the voltage level)
+    digitalWrite(LED, HIGH);            // turn the LED on (HIGH is the voltage level)
+    delay(1000);                        // wait for a second
+    digitalWrite(Electromagnet, LOW);   // turn the Electromagnet off by making the voltage LOW
+    digitalWrite(LED, LOW);             // turn the LED off by making the voltage LOW
+    delay(1000);                        // wait for a second
 }
 
