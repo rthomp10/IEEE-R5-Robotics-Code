@@ -13,7 +13,7 @@
 #define RELAY3  8                        
 #define RELAY4  9
 
-int delayVal = 40;
+int delayVal = 100;
 
 void setup()
 {    
