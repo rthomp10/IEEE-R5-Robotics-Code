@@ -20,6 +20,45 @@ byte i2cReadBuffer[10];
 
 #define RELAY_MAGNET  6
 
+//color sensor functions
+void Writei2cRegisters(byte, byte);
+byte Readi2cRegisters(int, byte);
+void init_TCS34725(void);
+void get_TCS34725ID(void);
+char get_Colors(void);
+
+//terminal clean-up
+void clearScreen(void);
+
+
+// the setup routine runs once when you press reset:
+void setup() {
+      Serial.begin(115200);
+      Wire.begin();
+      pinMode(RELAY_MAGNET, OUTPUT);
+      init_TCS34725();
+      get_TCS34725ID();     // get the device ID, this is just a test to see if we're connected
+}
+
+// the loop routine runs over and over again forever:
+void loop() {
+	Serial.println("");
+	if( Serial.read() == 'a' )
+	{
+	  digitalWrite(RELAY_MAGNET, LOW);
+	  delay(100);
+	}
+	digitalWrite(RELAY_MAGNET, HIGH);
+
+	Serial.println("");
+	if(get_Colors() == 'r')
+	{
+		digitalWrite(RELAY_MAGNET, LOW);
+	}
+	delay(40);
+    clearScreen();
+}
+//end of main loop
 
 /*  
 Send register address and the byte value you want to write the magnetometer and 
@@ -38,10 +77,9 @@ void Writei2cRegisters(byte numberbytes, byte command)
     delayMicroseconds(100);      // allow some time for bus to settle      
 }
 
-  
+
 //Sends register address to this function and it returns byte value
 //for the magnetometer register's contents 
-
 byte Readi2cRegisters(int numberbytes, byte command)
 {
    byte i = 0;
@@ -81,7 +119,6 @@ void get_TCS34725ID(void)
     Serial.println("TCS34725 not responding");    
 }
 
-
 //Reads the register values for clear, red, green, and blue.
 char get_Colors(void)
 {
@@ -92,7 +129,7 @@ char get_Colors(void)
   
   unsigned int clear_offset = 0;
   unsigned int red_offset = 0;
-  unsigned int green_offset = -30;
+  unsigned int green_offset = -10;
   unsigned int blue_offset = 0;
 
   Readi2cRegisters(8,ColorAddress);
@@ -139,35 +176,5 @@ void clearScreen(){
 	  Serial.print("[2J");    // clear screen command
 	  Serial.write(27);
 	  Serial.print("[H");     // cursor to home command
-}
-
-
-// the setup routine runs once when you press reset:
-void setup() {
-    // initialize the digital pin as an output.
-      Serial.begin(115200);
-      Wire.begin();
-      pinMode(RELAY_MAGNET, OUTPUT);
-      init_TCS34725();
-      get_TCS34725ID();     // get the device ID, this is just a test to see if we're connected
-}
-
-// the loop routine runs over and over again forever:
-void loop() {
-	Serial.println("");
-	if( Serial.read() == 'a' )
-	{
-	  digitalWrite(RELAY_MAGNET, LOW);
-	  delay(100);
-	}
-	digitalWrite(RELAY_MAGNET, HIGH);
-
-	Serial.println("");
-	if(get_Colors() == 'r')
-	{
-		digitalWrite(RELAY_MAGNET, LOW);
-	}
-	delay(40);
-    clearScreen();
 }
 
