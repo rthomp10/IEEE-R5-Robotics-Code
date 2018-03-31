@@ -3,6 +3,7 @@
 uchar t;
 //void send_data(short a1,short b1,short c1,short d1,short e1,short f1);
 uchar data[16];
+
 void setup()
 {
   Wire.begin();        // join i2c bus (address optional for master)
@@ -20,21 +21,27 @@ void loop()
     else
       t = 0;
   }
-  Serial.print("data[0]:");
-  Serial.println(data[0]);
-  Serial.print("data[2]:");
-  Serial.println(data[2]);
-  Serial.print("data[4]:");
-  Serial.println(data[4]);
-  Serial.print("data[6]:");
-  Serial.println(data[6]);
-  Serial.print("data[8]:");
-  Serial.println(data[8]);
-  Serial.print("data[10]:");
-  Serial.println(data[10]);
-  Serial.print("data[12]:");
-  Serial.println(data[12]);
-  Serial.print("data[14]:");
-  Serial.println(data[14]);
+
+  //Uses data[whatever] as the only variables so we can save some memory
+  if(data[0] < data[6] || data[2] < data[6] || data[4] < data[6] || data[0] < data[8] || data[2] < data[8] || data[4] < data[8]) //if left 3 is less than middle 2
+  {
+    //GIVE MORE POWER TO RIGHT MOTOR
+  }
+  else if(data[10] < data[6] || data[12] < data[6] || data[14] < data[6] || data[10] < data[8] || data[12] < data[8] || data[14] < data[8]) //if right 3 is less than middle 2
+  {
+    //GIVE MORE POWER TO LEFT MOTOR
+  }
+  else //if middle 2 is less than anything else
+  {
+    //POWER OF LEFT MOTOR = POWER OF RIGHT MOTOR
+  }
+  
+
+  for(int i = 0; i < 8; i++)
+  {
+    Serial.print(data[2*i]);
+    Serial.print(" ");
+  }
+  Serial.println("");
   delay(1000);
 }
