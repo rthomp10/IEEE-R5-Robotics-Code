@@ -1,42 +1,148 @@
-
-/*
- Stepper Motor Control - one step at a time
-
- This program drives a unipolar or bipolar stepper motor.
- The motor is attached to digital pins 8 - 11 of the Arduino.
-
- The motor will step one step at a time, very slowly.  You can use this to
- test that you've got the four wires of your stepper wired to the correct
- pins. If wired correctly, all steps should be in the same direction.
-
- Use this also to count the number of steps per revolution of your motor,
- if you don't know it.  Then plug that number into the oneRevolution
- example to see if you got it right.
-
- Created 30 Nov. 2009
- by Tom Igoe
-
- */
-
 #include <Stepper.h>
+#include <Wire.h>
+#include <math.h>
 
-int Electromagnet = 0;
-int LED = 13;
+byte i2cWriteBuffer[10];
+byte i2cReadBuffer[10];
+
+//RGB Sensor Methods and Defininitions definitions
+#define SensorAddressWrite 0x29 //
+#define SensorAddressRead 0x29 // 
+#define EnableAddress 0xa0 // register address + command bits
+#define ATimeAddress 0xa1 // register address + command bits
+#define WTimeAddress 0xa3 // register address + command bits
+#define ConfigAddress 0xad // register address + command bits
+#define ControlAddress 0xaf // register address + command bits
+#define IDAddress 0xb2 // register address + command bits
+#define ColorAddress 0xb4 // register address + command bits
+
+/*  
+Send register address and the byte value you want to write the magnetometer and 
+loads the destination register with the value you send
+*/
+void Writei2cRegisters(byte numberbytes, byte command)
+{
+    byte i = 0;
+
+    Wire.beginTransmission(SensorAddressWrite);   // Send address with Write bit set
+    Wire.write(command);                          // Send command, normally the register address 
+    for (i=0;i<numberbytes;i++)                       // Send data 
+      Wire.write(i2cWriteBuffer[i]);
+    Wire.endTransmission();
+
+    delayMicroseconds(100);      // allow some time for bus to settle      
+}
+
+  
+//Send register address to this function and it returns byte value
+//for the magnetometer register's contents 
+
+byte Readi2cRegisters(int numberbytes, byte command)
+{
+   byte i = 0;
+
+    Wire.beginTransmission(SensorAddressWrite);   // Write address of read to sensor
+    Wire.write(command);
+    Wire.endTransmission();
+
+    delayMicroseconds(100);      // allow some time for bus to settle      
+
+    Wire.requestFrom(SensorAddressRead,numberbytes);   // read data
+    for(i=0;i<numberbytes;i++)
+      i2cReadBuffer[i] = Wire.read();
+    Wire.endTransmission();   
+
+    delayMicroseconds(100);      // allow some time for bus to settle      
+}  
+
+void init_TCS34725(void)
+{
+  i2cWriteBuffer[0] = 0x10;
+  Writei2cRegisters(1,ATimeAddress);    // RGBC timing is 256 - contents x 2.4mS =  
+  i2cWriteBuffer[0] = 0x00;
+  Writei2cRegisters(1,ConfigAddress);   // Can be used to change the wait time
+  i2cWriteBuffer[0] = 0x00;
+  Writei2cRegisters(1,ControlAddress);  // RGBC gain control
+  i2cWriteBuffer[0] = 0x03;
+  Writei2cRegisters(1,EnableAddress);    // enable ADs and oscillator for sensor  
+}
+
+void get_TCS34725ID(void)
+{
+  Readi2cRegisters(1,IDAddress);
+  if (i2cReadBuffer[0] = 0x44)
+    Serial.println("TCS34725 is present");    
+  else
+    Serial.println("TCS34725 not responding");    
+}
+
+
+//Reads the register values for clear, red, green, and blue.
+void get_Colors(void)
+{
+  unsigned int clear_color = 0;
+  unsigned int red_color = 0;
+  unsigned int green_color = 0;
+  unsigned int blue_color = 0;
+
+  Readi2cRegisters(8,ColorAddress);
+  clear_color = (unsigned int)(i2cReadBuffer[1]<<8) + (unsigned int)i2cReadBuffer[0];
+  red_color = (unsigned int)(i2cReadBuffer[3]<<8) + (unsigned int)i2cReadBuffer[2];
+  green_color = (unsigned int)(i2cReadBuffer[5]<<8) + (unsigned int)i2cReadBuffer[4];
+  blue_color = (unsigned int)(i2cReadBuffer[7]<<8) + (unsigned int)i2cReadBuffer[6];
+
+  // send register values to the serial monitor 
+
+  Serial.print("clear color=");
+  Serial.print(clear_color, DEC);    
+  Serial.print(" red color=");
+  Serial.print(red_color, DEC);    
+  Serial.print(" green color=");
+  Serial.print(green_color, DEC);    
+  Serial.print(" blue color=");
+  Serial.println(blue_color, DEC);
+
+
+ // Basic RGB color differentiation can be accomplished by comparing the values and the largest reading will be 
+ // the prominent color
+
+  if((red_color>blue_color) && (red_color>green_color))
+    Serial.println("detecting red");
+  else if((green_color>blue_color) && (green_color>red_color))
+    Serial.println("detecting green");
+  else if((blue_color>red_color) && (blue_color>green_color))
+    Serial.println("detecting blue");
+  else
+    Serial.println("color not detectable");
+
+} 
+
+//relay definitions
+#define RELAY_MAGNET  6
+
 
 // the setup routine runs once when you press reset:
 void setup() {
     // initialize the digital pin as an output.
-    pinMode(Electromagnet, OUTPUT);
-    pinMode(LED, OUTPUT);
+      Serial.begin(115200);
+      Wire.begin();
+      pinMode(RELAY_MAGNET, OUTPUT);
+      init_TCS34725();
+      get_TCS34725ID();     // get the device ID, this is just a test to see if we're connected
 }
 
 // the loop routine runs over and over again forever:
-void loop() {
-    digitalWrite(Electromagnet, HIGH);  // turn the Electromagnet on (HIGH is the voltage level)
-    digitalWrite(LED, HIGH);            // turn the LED on (HIGH is the voltage level)
-    delay(1000);                        // wait for a second
-    digitalWrite(Electromagnet, LOW);   // turn the Electromagnet off by making the voltage LOW
-    digitalWrite(LED, LOW);             // turn the LED off by making the voltage LOW
-    delay(1000);                        // wait for a second
+void loop() 
+{
+  if( Serial.read() == 'a' )
+  {
+    digitalWrite(RELAY_MAGNET, LOW);
+    delay(100);
+  }
+  digitalWrite(RELAY_MAGNET, HIGH);
+
+  get_Colors();
+    //delay(1000);
+    
 }
 
