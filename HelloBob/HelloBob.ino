@@ -1,3 +1,5 @@
+#include <Adafruit_TCS34725.h>
+
 #include <Stepper.h>
 #include <Wire.h>
 #include <math.h>
@@ -15,6 +17,9 @@ byte i2cReadBuffer[10];
 #define ControlAddress 0xaf // register address + command bits
 #define IDAddress 0xb2 // register address + command bits
 #define ColorAddress 0xb4 // register address + command bits
+
+#define RELAY_MAGNET  6
+
 
 /*  
 Send register address and the byte value you want to write the magnetometer and 
@@ -34,7 +39,7 @@ void Writei2cRegisters(byte numberbytes, byte command)
 }
 
   
-//Send register address to this function and it returns byte value
+//Sends register address to this function and it returns byte value
 //for the magnetometer register's contents 
 
 byte Readi2cRegisters(int numberbytes, byte command)
@@ -78,47 +83,63 @@ void get_TCS34725ID(void)
 
 
 //Reads the register values for clear, red, green, and blue.
-void get_Colors(void)
+char get_Colors(void)
 {
   unsigned int clear_color = 0;
   unsigned int red_color = 0;
   unsigned int green_color = 0;
   unsigned int blue_color = 0;
+  
+  unsigned int clear_offset = 0;
+  unsigned int red_offset = 0;
+  unsigned int green_offset = -30;
+  unsigned int blue_offset = 0;
 
   Readi2cRegisters(8,ColorAddress);
-  clear_color = (unsigned int)(i2cReadBuffer[1]<<8) + (unsigned int)i2cReadBuffer[0];
-  red_color = (unsigned int)(i2cReadBuffer[3]<<8) + (unsigned int)i2cReadBuffer[2];
-  green_color = (unsigned int)(i2cReadBuffer[5]<<8) + (unsigned int)i2cReadBuffer[4];
-  blue_color = (unsigned int)(i2cReadBuffer[7]<<8) + (unsigned int)i2cReadBuffer[6];
+  clear_color = (unsigned int)(i2cReadBuffer[1]<<8) + clear_offset + (unsigned int)i2cReadBuffer[0];
+  red_color = (unsigned int)(i2cReadBuffer[3]<<8) + red_offset + (unsigned int)i2cReadBuffer[2];
+  green_color = (unsigned int)(i2cReadBuffer[5]<<8) + green_offset + (unsigned int)i2cReadBuffer[4];
+  blue_color = (unsigned int)(i2cReadBuffer[7]<<8) + blue_offset + (unsigned int)i2cReadBuffer[6];
 
   // send register values to the serial monitor 
 
-  Serial.print("clear color=");
-  Serial.print(clear_color, DEC);    
-  Serial.print(" red color=");
-  Serial.print(red_color, DEC);    
-  Serial.print(" green color=");
-  Serial.print(green_color, DEC);    
-  Serial.print(" blue color=");
+  Serial.print("clear=");
+  Serial.println(clear_color, DEC);    
+  Serial.print("red=");
+  Serial.println(red_color, DEC);    
+  Serial.print("green=");
+  Serial.println(green_color, DEC);    
+  Serial.print("blue=");
   Serial.println(blue_color, DEC);
 
 
  // Basic RGB color differentiation can be accomplished by comparing the values and the largest reading will be 
  // the prominent color
 
-  if((red_color>blue_color) && (red_color>green_color))
-    Serial.println("detecting red");
-  else if((green_color>blue_color) && (green_color>red_color))
+  if((red_color>blue_color) && (red_color>green_color)){
+	  Serial.println("detecting red");
+	  return 'r';
+  }
+  else if((green_color>blue_color) && (green_color>red_color)){
     Serial.println("detecting green");
-  else if((blue_color>red_color) && (blue_color>green_color))
+	return 'g';
+  }
+  else if((blue_color>red_color) && (blue_color>green_color)){
     Serial.println("detecting blue");
-  else
+	return 'b';
+  }
+  else{
     Serial.println("color not detectable");
+	return 'c';
+  }
+}
 
-} 
-
-//relay definitions
-#define RELAY_MAGNET  6
+void clearScreen(){
+	  Serial.write(27);       // ESC command
+	  Serial.print("[2J");    // clear screen command
+	  Serial.write(27);
+	  Serial.print("[H");     // cursor to home command
+}
 
 
 // the setup routine runs once when you press reset:
@@ -132,17 +153,21 @@ void setup() {
 }
 
 // the loop routine runs over and over again forever:
-void loop() 
-{
-  if( Serial.read() == 'a' )
-  {
-    digitalWrite(RELAY_MAGNET, LOW);
-    delay(100);
-  }
-  digitalWrite(RELAY_MAGNET, HIGH);
+void loop() {
+	Serial.println("");
+	if( Serial.read() == 'a' )
+	{
+	  digitalWrite(RELAY_MAGNET, LOW);
+	  delay(100);
+	}
+	digitalWrite(RELAY_MAGNET, HIGH);
 
-  get_Colors();
-    //delay(1000);
-    
+	Serial.println("");
+	if(get_Colors() == 'r')
+	{
+		digitalWrite(RELAY_MAGNET, LOW);
+	}
+	delay(40);
+    clearScreen();
 }
 
