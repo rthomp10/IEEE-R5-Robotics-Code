@@ -1,5 +1,4 @@
 #include <Adafruit_TCS34725.h>
-
 #include <Stepper.h>
 #include <Wire.h>
 #include <math.h>
@@ -30,6 +29,20 @@ char get_Colors(void);
 //terminal clean-up
 void clearScreen(void);
 
+//Stepper control
+const float STEPS_PER_REV = 32; // Number of steps per internal motor revolution 
+const float GEAR_RED = 64;	  //  Amount of Gear Reduction
+const float STEPS_PER_OUT_REV = STEPS_PER_REV * GEAR_RED;	  // Number of steps per geared output rotation
+int speedVar = 100; 	// Define Variables
+int StepsRequired;	// Number of Steps Required
+
+// Create Instance of Stepper Class
+// Specify Pins used for motor coils
+// The pins used are 8,9,10,11 
+// Connected to ULN2003 Motor Driver In1, In2, In3, In4 
+// Pins entered in sequence 1-3-2-4 for proper step sequencing
+Stepper steppermotor(STEPS_PER_REV, 10, 12, 11, 13);
+
 
 // the setup routine runs once when you press reset:
 void setup() {
@@ -37,7 +50,7 @@ void setup() {
       Wire.begin();
       pinMode(RELAY_MAGNET, OUTPUT);
       init_TCS34725();
-      get_TCS34725ID();     // get the device ID, this is just a test to see if we're connected
+      get_TCS34725ID();  // get the device ID, this is just a test to see if we're connected
 }
 
 // the loop routine runs over and over again forever:
@@ -56,6 +69,11 @@ void loop() {
 		digitalWrite(RELAY_MAGNET, LOW);
 	}
 	delay(40);
+	
+   // Rotate CCW 1/2 turn quickly
+    //StepsRequired  =  STEPS_PER_OUT_REV / 2;   
+    //steppermotor.setSpeed(1000);  
+    //steppermotor.step(StepsRequired);
     clearScreen();
 }
 //end of main loop
@@ -76,7 +94,6 @@ void Writei2cRegisters(byte numberbytes, byte command)
 
     delayMicroseconds(100);      // allow some time for bus to settle      
 }
-
 
 //Sends register address to this function and it returns byte value
 //for the magnetometer register's contents 
@@ -129,7 +146,7 @@ char get_Colors(void)
   
   unsigned int clear_offset = 0;
   unsigned int red_offset = 0;
-  unsigned int green_offset = -10;
+  unsigned int green_offset = 0;
   unsigned int blue_offset = 0;
 
   Readi2cRegisters(8,ColorAddress);
